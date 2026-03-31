@@ -87,26 +87,26 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| AUTH-01 | TBD | Pending |
-| AUTH-02 | TBD | Pending |
-| MATL-01 | TBD | Pending |
-| MATL-02 | TBD | Pending |
-| MATL-03 | TBD | Pending |
-| MATL-04 | TBD | Pending |
-| MATL-05 | TBD | Pending |
-| QNA-01 | TBD | Pending |
-| QNA-02 | TBD | Pending |
-| QNA-03 | TBD | Pending |
-| QNA-04 | TBD | Pending |
-| QNA-05 | TBD | Pending |
-| SUBM-01 | TBD | Pending |
-| SUBM-02 | TBD | Pending |
-| SUBM-03 | TBD | Pending |
+| AUTH-01 | Phase 3 | Pending |
+| AUTH-02 | Phase 3 | Pending |
+| MATL-01 | Phase 4 | Pending |
+| MATL-02 | Phase 4 | Pending |
+| MATL-03 | Phase 5 | Pending |
+| MATL-04 | Phase 5 | Pending |
+| MATL-05 | Phase 6 | Pending |
+| QNA-01 | Phase 7 | Pending |
+| QNA-02 | Phase 7 | Pending |
+| QNA-03 | Phase 7 | Pending |
+| QNA-04 | Phase 7 | Pending |
+| QNA-05 | Phase 9 | Pending |
+| SUBM-01 | Phase 8 | Pending |
+| SUBM-02 | Phase 8 | Pending |
+| SUBM-03 | Phase 8 | Pending |
 
 **Coverage:**
 - v1 requirements: 15 total
-- Mapped to phases: 0
-- Unmapped: 15 ⚠️
+- Mapped to phases: 15 ✓
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-31*
