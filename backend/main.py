@@ -1,13 +1,25 @@
 """
 AI Professor Agent - FastAPI Backend
 """
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
+from .database import create_tables
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Initialize database on startup."""
+    create_tables()
+    yield
+
 
 app = FastAPI(
     title="AI Professor Agent",
     description="Course-specific AI tutoring system",
-    version="0.1.0"
+    version="0.1.0",
+    lifespan=lifespan
 )
 
 # CORS for Streamlit frontend
@@ -23,7 +35,14 @@ app.add_middleware(
 @app.get("/health")
 def health_check():
     """Health check endpoint."""
-    return {"status": "healthy", "service": "ai-professor-backend"}
+    import os
+    db_path = os.path.join(os.path.dirname(__file__), "..", "data", "professor.db")
+    db_exists = os.path.exists(db_path)
+    return {
+        "status": "healthy",
+        "service": "ai-professor-backend",
+        "database": "connected" if db_exists else "not initialized"
+    }
 
 
 @app.get("/")
