@@ -85,6 +85,22 @@ class IngestionResult(BaseModel):
     status: str = "success"
 
 
+# ============ Q&A Schemas ============
+
+class QuestionRequest(BaseModel):
+    """Schema for asking a question."""
+    course_id: int
+    question: str
+
+
+class AnswerResponse(BaseModel):
+    """Schema for professor's answer."""
+    question: str
+    answer: str
+    course_name: str
+    sources: list[str] = []
+
+
 # ============ Submission Schemas ============
 
 class SubmissionCreate(BaseModel):

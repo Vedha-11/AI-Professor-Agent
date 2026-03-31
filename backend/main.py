@@ -6,7 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .database import create_tables
-from .routes import auth, courses, materials, ingest
+from .routes import auth, courses, materials, ingest, qa
 
 
 @asynccontextmanager
@@ -28,6 +28,7 @@ app.include_router(auth.router)
 app.include_router(courses.router)
 app.include_router(materials.router)
 app.include_router(ingest.router)
+app.include_router(qa.router)
 
 # CORS for Streamlit frontend
 app.add_middleware(
