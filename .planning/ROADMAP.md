@@ -35,7 +35,9 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. Project directory structure established (backend/, frontend/, .planning/)
   4. FastAPI server starts without errors on localhost
   5. Ollama is installed and responds to test prompts
-**Plans**: TBD
+**Plans**: 1 plan
+Plans:
+- [ ] 01-01-PLAN.md — Project Environment and Structure Setup
 
 ### Phase 2: Database Schema
 **Goal**: SQLite database with all tables needed for users, courses, materials, and submissions
