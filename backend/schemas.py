@@ -75,6 +75,16 @@ class MaterialResponse(BaseModel):
         from_attributes = True
 
 
+# ============ Ingestion Schemas ============
+
+class IngestionResult(BaseModel):
+    """Schema for ingestion result."""
+    material_id: int
+    filename: str
+    chunks_created: int
+    status: str = "success"
+
+
 # ============ Submission Schemas ============
 
 class SubmissionCreate(BaseModel):
