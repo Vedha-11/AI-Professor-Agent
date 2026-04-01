@@ -11,7 +11,7 @@ import {
   Award,
   Target
 } from 'lucide-react';
-import { courseAPI, studentAPI, submissionAPI } from '@/lib/api';
+import { courseAPI, submissionAPI, professorAPI } from '@/lib/api';
 import { cn, formatDate } from '@/lib/utils';
 
 interface Course {
@@ -34,6 +34,7 @@ interface StudentEvaluation {
 
 interface LeaderboardEntry {
   username: string;
+  user_id: number;
   avg_score: number;
   submissions: number;
   questions_asked: number;
@@ -77,7 +78,7 @@ export default function ProfessorEvaluationsPage() {
           
           return {
             username: entry.username,
-            user_id: 0,
+            user_id: entry.user_id || 0,
             score: Math.round(score),
             grade,
             submissions: entry.submissions || 0,
@@ -101,11 +102,42 @@ export default function ProfessorEvaluationsPage() {
   }, [selectedCourse]);
 
   const generateReports = async () => {
+    if (!selectedCourse || evaluations.length === 0) return;
+    
     setIsGenerating(true);
-    // Simulate report generation
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    setIsGenerating(false);
-    alert('Reports generated successfully! (Demo)');
+    try {
+      // Generate reports for all students using actual API
+      const reportPromises = evaluations.map(async (evaluation) => {
+        if (evaluation.user_id > 0) {
+          try {
+            const report = await professorAPI.getStudentReport(selectedCourse, evaluation.user_id);
+            return report;
+          } catch {
+            return null;
+          }
+        }
+        return null;
+      });
+      
+      const reports = await Promise.all(reportPromises);
+      const validReports = reports.filter(r => r !== null);
+      
+      // Download as JSON file
+      const blob = new Blob([JSON.stringify(validReports, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `course_${selectedCourse}_evaluations_${new Date().toISOString().split('T')[0]}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      
+      alert(`Generated ${validReports.length} student reports successfully!`);
+    } catch (err) {
+      console.error('Failed to generate reports:', err);
+      alert('Failed to generate reports. Please try again.');
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const getGradeColor = (grade: string) => {

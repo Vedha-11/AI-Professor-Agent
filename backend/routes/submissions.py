@@ -286,6 +286,7 @@ def get_leaderboard(course_id: int, db: Session = Depends(get_db)):
         
         entry = {
             "rank": i + 1,
+            "user_id": r.user_id,
             "username": r.username,
             "avg_score": round(r.avg_score, 2) if r.avg_score else 0,
             "submissions": r.submission_count,

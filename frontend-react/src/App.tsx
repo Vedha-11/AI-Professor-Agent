@@ -8,6 +8,8 @@ import LeaderboardPage from '@/pages/LeaderboardPage';
 import RecommendationsPage from '@/pages/RecommendationsPage';
 import UploadPage from '@/pages/UploadPage';
 import AssignmentsPage from '@/pages/AssignmentsPage';
+import StudentCoursesPage from '@/pages/StudentCoursesPage';
+import CoursesPage from '@/pages/CoursesPage';
 import ProfessorDashboardPage from '@/pages/ProfessorDashboardPage';
 import ProfessorSubmissionsPage from '@/pages/ProfessorSubmissionsPage';
 import ProfessorEvaluationsPage from '@/pages/ProfessorEvaluationsPage';
@@ -84,6 +86,16 @@ function AppRoutes() {
           </RoleRoute>
         }
       />
+      <Route
+        path="/courses"
+        element={
+          <RoleRoute allowedRoles={['student']}>
+            <Layout>
+              <StudentCoursesPage />
+            </Layout>
+          </RoleRoute>
+        }
+      />
       
       {/* Shared Routes */}
       <Route
@@ -114,6 +126,16 @@ function AppRoutes() {
           <RoleRoute allowedRoles={['professor']}>
             <Layout>
               <UploadPage />
+            </Layout>
+          </RoleRoute>
+        }
+      />
+      <Route
+        path="/professor/courses"
+        element={
+          <RoleRoute allowedRoles={['professor']}>
+            <Layout>
+              <CoursesPage />
             </Layout>
           </RoleRoute>
         }

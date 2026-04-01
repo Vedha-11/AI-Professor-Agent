@@ -43,7 +43,8 @@ def generate_with_context(
     context_chunks: list[dict],
     course_name: str,
     model: str = DEFAULT_MODEL,
-    student_profile: dict = None
+    student_profile: dict = None,
+    include_citations: bool = True
 ) -> str:
     """
     Generate a professor-like response using RAG context.
@@ -54,15 +55,22 @@ def generate_with_context(
         course_name: Name of the course for persona
         model: The LLM model to use
         student_profile: Optional student profile for personalization
+        include_citations: Whether to include source citations
     
     Returns:
-        Professor's response
+        Professor's response with optional citations
     """
-    # Build context from chunks
-    context_text = "\n\n".join([
-        f"[From: {c['metadata'].get('filename', 'course material')}]\n{c['text']}"
-        for c in context_chunks
-    ])
+    # Build context from chunks with numbered sources for citations
+    context_parts = []
+    sources_map = {}
+    for i, c in enumerate(context_chunks, 1):
+        filename = c['metadata'].get('filename', 'course material')
+        page = c['metadata'].get('page', '')
+        source_label = f"[Source {i}]"
+        sources_map[source_label] = f"{filename}" + (f" (page {page})" if page else "")
+        context_parts.append(f"{source_label} From: {filename}\n{c['text']}")
+    
+    context_text = "\n\n".join(context_parts)
     
     # Build personalization section
     personalization = ""
@@ -83,6 +91,14 @@ Adapt your explanation based on this profile:
 - Encourage improvement in weak areas while building on strengths
 """
     
+    # Citation instructions
+    citation_instruction = ""
+    if include_citations:
+        citation_instruction = """
+IMPORTANT: When referencing information from the materials, cite your sources using [Source N] notation.
+For example: "According to [Source 1], machine learning is..."
+"""
+    
     # Professor persona system prompt
     system_prompt = f"""You are a knowledgeable and helpful professor teaching "{course_name}".
 
@@ -92,7 +108,7 @@ Your role is to:
 - Explain concepts in an educational, approachable manner
 - If the answer isn't in the materials, say so honestly
 - Encourage further learning and curiosity
-{personalization}
+{citation_instruction}{personalization}
 Always maintain a warm, professional, and supportive tone like a real professor would."""
 
     # User prompt with context
@@ -106,11 +122,20 @@ Here is relevant information from the course materials:
 
 Please provide a helpful, educational response based on the course materials above. If the materials don't contain enough information to fully answer the question, acknowledge this and provide what guidance you can."""
 
-    return generate_response(
+    response = generate_response(
         prompt=user_prompt,
         model=model,
         system_prompt=system_prompt
     )
+    
+    # Append source legend if citations are included
+    if include_citations and sources_map:
+        source_legend = "\n\n---\n📚 **Sources:**\n"
+        for label, source in sources_map.items():
+            source_legend += f"- {label}: {source}\n"
+        response += source_legend
+    
+    return response
 
 
 def check_ollama_available(model: str = DEFAULT_MODEL) -> dict:

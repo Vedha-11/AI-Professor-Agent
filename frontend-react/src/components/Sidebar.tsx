@@ -11,7 +11,8 @@ import {
   FileQuestion,
   Users,
   ClipboardList,
-  GraduationCap
+  GraduationCap,
+  BookOpen
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
@@ -19,6 +20,7 @@ import { cn } from '@/lib/utils';
 // Student navigation items
 const studentNavItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
+  { icon: BookOpen, label: 'My Courses', path: '/courses' },
   { icon: MessageSquare, label: 'AI Chat', path: '/chat' },
   { icon: FileQuestion, label: 'Assignments', path: '/assignments' },
   { icon: Trophy, label: 'Leaderboard', path: '/leaderboard' },
@@ -28,6 +30,7 @@ const studentNavItems = [
 // Professor navigation items
 const professorNavItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/professor' },
+  { icon: BookOpen, label: 'Courses', path: '/professor/courses' },
   { icon: Upload, label: 'Upload Materials', path: '/upload' },
   { icon: Users, label: 'Students', path: '/professor/students' },
   { icon: ClipboardList, label: 'Submissions', path: '/professor/submissions' },
