@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   FileQuestion,
   CheckCircle,
@@ -13,7 +13,9 @@ import {
   TrendingUp,
   AlertCircle,
   Sparkles,
-  Clock
+  Clock,
+  Upload,
+  FileText
 } from 'lucide-react';
 import { courseAPI, submissionAPI } from '@/lib/api';
 import { cn } from '@/lib/utils';
@@ -47,6 +49,16 @@ interface SubmissionHistory {
   timestamp: Date;
 }
 
+interface PDFResult {
+  submission_id: number;
+  filename: string;
+  score: number;
+  feedback: string;
+  strengths: string[];
+  improvements: string[];
+  extracted_content_preview: string;
+}
+
 const difficultyColors = {
   easy: 'bg-neon-green/20 text-neon-green border-neon-green/30',
   medium: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
@@ -70,6 +82,12 @@ export default function AssignmentsPage() {
   const [gradingResult, setGradingResult] = useState<GradingResult | null>(null);
   const [history, setHistory] = useState<SubmissionHistory[]>([]);
   const [error, setError] = useState('');
+  const [activeTab, setActiveTab] = useState<'quiz' | 'pdf'>('quiz');
+  const [pdfFile, setPdfFile] = useState<File | null>(null);
+  const [assignmentTitle, setAssignmentTitle] = useState('');
+  const [pdfResult, setPdfResult] = useState<PDFResult | null>(null);
+  const [isUploadingPdf, setIsUploadingPdf] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch courses
   useEffect(() => {
@@ -150,6 +168,36 @@ export default function AssignmentsPage() {
     setGradingResult(null);
   };
 
+  const handlePdfUpload = async () => {
+    if (!pdfFile || !selectedCourse) return;
+    
+    setIsUploadingPdf(true);
+    setPdfResult(null);
+    setError('');
+    
+    try {
+      const result = await submissionAPI.uploadPDF(
+        selectedCourse,
+        pdfFile,
+        assignmentTitle || 'General Assignment'
+      );
+      setPdfResult(result);
+    } catch (err: any) {
+      setError(err.response?.data?.detail || 'Failed to upload and evaluate PDF');
+    } finally {
+      setIsUploadingPdf(false);
+    }
+  };
+
+  const resetPdfUpload = () => {
+    setPdfFile(null);
+    setAssignmentTitle('');
+    setPdfResult(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
   const getScoreColor = (score: number) => {
     if (score >= 80) return 'text-neon-green';
     if (score >= 60) return 'text-yellow-400';
@@ -202,6 +250,35 @@ export default function AssignmentsPage() {
         </div>
       )}
 
+      {/* Tab Navigation */}
+      <div className="flex gap-2 p-1 bg-dark-800 rounded-xl w-fit">
+        <button
+          onClick={() => setActiveTab('quiz')}
+          className={cn(
+            "flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all",
+            activeTab === 'quiz'
+              ? "bg-gradient-to-r from-neon-blue to-neon-purple text-white"
+              : "text-dark-400 hover:text-white"
+          )}
+        >
+          <FileQuestion className="w-4 h-4" />
+          Quiz Questions
+        </button>
+        <button
+          onClick={() => setActiveTab('pdf')}
+          className={cn(
+            "flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all",
+            activeTab === 'pdf'
+              ? "bg-gradient-to-r from-neon-blue to-neon-purple text-white"
+              : "text-dark-400 hover:text-white"
+          )}
+        >
+          <Upload className="w-4 h-4" />
+          Upload PDF
+        </button>
+      </div>
+
+      {activeTab === 'quiz' ? (
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Assignment List */}
         <div className="lg:col-span-1 card">
@@ -464,6 +541,178 @@ export default function AssignmentsPage() {
           )}
         </div>
       </div>
+      ) : (
+      /* PDF Upload Section */
+      <div className="max-w-2xl mx-auto">
+        <div className="card">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-12 h-12 bg-gradient-to-br from-neon-blue to-neon-purple rounded-xl flex items-center justify-center">
+              <Upload className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h3 className="text-xl font-bold text-white">Upload PDF Assignment</h3>
+              <p className="text-dark-400 text-sm">Submit your assignment as PDF for AI evaluation</p>
+            </div>
+          </div>
+
+          {!pdfResult ? (
+            <div className="space-y-4">
+              {/* Assignment Title */}
+              <div>
+                <label className="block text-sm font-medium text-dark-300 mb-2">
+                  Assignment Title
+                </label>
+                <input
+                  type="text"
+                  value={assignmentTitle}
+                  onChange={(e) => setAssignmentTitle(e.target.value)}
+                  placeholder="e.g., Machine Learning Assignment 1"
+                  className="input w-full"
+                />
+              </div>
+
+              {/* File Upload */}
+              <div>
+                <label className="block text-sm font-medium text-dark-300 mb-2">
+                  PDF File
+                </label>
+                <div
+                  onClick={() => fileInputRef.current?.click()}
+                  className={cn(
+                    "border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all",
+                    pdfFile
+                      ? "border-neon-green bg-neon-green/5"
+                      : "border-dark-600 hover:border-neon-blue hover:bg-dark-800/50"
+                  )}
+                >
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".pdf"
+                    onChange={(e) => setPdfFile(e.target.files?.[0] || null)}
+                    className="hidden"
+                  />
+                  {pdfFile ? (
+                    <div className="flex flex-col items-center">
+                      <FileText className="w-12 h-12 text-neon-green mb-3" />
+                      <p className="text-white font-medium">{pdfFile.name}</p>
+                      <p className="text-dark-400 text-sm">{(pdfFile.size / 1024 / 1024).toFixed(2)} MB</p>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center">
+                      <Upload className="w-12 h-12 text-dark-500 mb-3" />
+                      <p className="text-dark-300">Click to upload or drag and drop</p>
+                      <p className="text-dark-500 text-sm">PDF files only</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Submit Button */}
+              <button
+                onClick={handlePdfUpload}
+                disabled={!pdfFile || isUploadingPdf}
+                className={cn(
+                  "w-full flex items-center justify-center gap-2 py-3 rounded-xl font-semibold transition-all",
+                  pdfFile && !isUploadingPdf
+                    ? "bg-gradient-to-r from-neon-blue to-neon-purple text-white hover:shadow-glow"
+                    : "bg-dark-700 text-dark-500 cursor-not-allowed"
+                )}
+              >
+                {isUploadingPdf ? (
+                  <>
+                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    Evaluating...
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-5 h-5" />
+                    Submit for Evaluation
+                  </>
+                )}
+              </button>
+            </div>
+          ) : (
+            /* PDF Evaluation Result */
+            <div className="space-y-6">
+              {/* Score Display */}
+              <div className="flex items-center justify-center py-6">
+                <div className="text-center">
+                  <div className={cn(
+                    "text-7xl font-bold mb-2",
+                    getScoreColor(pdfResult.score)
+                  )}>
+                    {Math.round(pdfResult.score)}%
+                  </div>
+                  <p className="text-dark-400">
+                    <FileText className="w-4 h-4 inline mr-1" />
+                    {pdfResult.filename}
+                  </p>
+                </div>
+              </div>
+
+              {/* Feedback */}
+              <div className="bg-dark-800/50 rounded-xl p-5 border border-dark-700">
+                <h4 className="font-semibold text-white mb-3 flex items-center gap-2">
+                  <Sparkles className="w-5 h-5 text-neon-blue" />
+                  AI Feedback
+                </h4>
+                <p className="text-dark-300 leading-relaxed">{pdfResult.feedback}</p>
+              </div>
+
+              {/* Extracted Content Preview */}
+              <div className="bg-dark-800/50 rounded-xl p-5 border border-dark-700">
+                <h4 className="font-semibold text-white mb-3 flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-neon-purple" />
+                  Extracted Content Preview
+                </h4>
+                <p className="text-dark-400 text-sm italic">{pdfResult.extracted_content_preview}</p>
+              </div>
+
+              {/* Strengths & Improvements */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-neon-green/5 rounded-xl p-5 border border-neon-green/20">
+                  <h4 className="font-semibold text-neon-green mb-3 flex items-center gap-2">
+                    <TrendingUp className="w-5 h-5" />
+                    Strengths
+                  </h4>
+                  <ul className="space-y-2">
+                    {pdfResult.strengths.map((s, i) => (
+                      <li key={i} className="flex items-start gap-2 text-dark-300 text-sm">
+                        <CheckCircle className="w-4 h-4 text-neon-green flex-shrink-0 mt-0.5" />
+                        {s}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <div className="bg-yellow-500/5 rounded-xl p-5 border border-yellow-500/20">
+                  <h4 className="font-semibold text-yellow-400 mb-3 flex items-center gap-2">
+                    <Target className="w-5 h-5" />
+                    Areas to Improve
+                  </h4>
+                  <ul className="space-y-2">
+                    {pdfResult.improvements.map((s, i) => (
+                      <li key={i} className="flex items-start gap-2 text-dark-300 text-sm">
+                        <XCircle className="w-4 h-4 text-yellow-400 flex-shrink-0 mt-0.5" />
+                        {s}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+
+              {/* Upload Another */}
+              <button
+                onClick={resetPdfUpload}
+                className="w-full py-3 border border-dark-600 rounded-xl text-dark-300 hover:text-white hover:border-neon-blue transition-colors"
+              >
+                Upload Another Assignment
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+      )}
     </div>
   );
 }

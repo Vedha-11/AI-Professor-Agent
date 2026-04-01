@@ -1,18 +1,20 @@
 import { useState } from 'react';
 import { Navigate } from 'react-router-dom';
-import { Sparkles, LogIn, UserPlus, Zap, Brain, Trophy } from 'lucide-react';
+import { Sparkles, LogIn, UserPlus, Zap, Brain, Trophy, GraduationCap, User } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { cn } from '@/lib/utils';
 
 export default function LoginPage() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [role, setRole] = useState<'student' | 'professor'>('student');
   const [isSignup, setIsSignup] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { login, signup, user } = useAuth();
+  const { login, signup, user, isProfessor } = useAuth();
 
   if (user) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to={isProfessor ? "/professor" : "/dashboard"} replace />;
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -22,7 +24,7 @@ export default function LoginPage() {
 
     try {
       if (isSignup) {
-        await signup(username, password);
+        await signup(username, password, role);
       } else {
         await login(username, password);
       }
@@ -150,6 +152,43 @@ export default function LoginPage() {
                 required
               />
             </div>
+
+            {/* Role selector - only show on signup */}
+            {isSignup && (
+              <div>
+                <label className="block text-sm font-medium text-dark-300 mb-3">
+                  I am a...
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setRole('student')}
+                    className={cn(
+                      "flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all",
+                      role === 'student'
+                        ? "border-neon-blue bg-neon-blue/10 text-neon-blue"
+                        : "border-dark-700 text-dark-400 hover:border-dark-500"
+                    )}
+                  >
+                    <User className="w-6 h-6" />
+                    <span className="font-medium">Student</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRole('professor')}
+                    className={cn(
+                      "flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all",
+                      role === 'professor'
+                        ? "border-neon-green bg-neon-green/10 text-neon-green"
+                        : "border-dark-700 text-dark-400 hover:border-dark-500"
+                    )}
+                  >
+                    <GraduationCap className="w-6 h-6" />
+                    <span className="font-medium">Professor</span>
+                  </button>
+                </div>
+              </div>
+            )}
 
             {error && (
               <div className="bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-3 rounded-xl text-sm">

@@ -29,8 +29,8 @@ export const authAPI = {
     });
     return res.data;
   },
-  signup: async (username: string, password: string) => {
-    const res = await api.post('/auth/signup', { username, password });
+  signup: async (username: string, password: string, role: 'student' | 'professor' = 'student') => {
+    const res = await api.post('/auth/signup', { username, password, role });
     return res.data;
   },
   getMe: async () => {
@@ -148,6 +148,28 @@ export const submissionAPI = {
       answer,
       topic 
     });
+    return res.data;
+  },
+  uploadPDF: async (courseId: number, file: File, assignmentTitle = 'General Assignment') => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const res = await api.post(
+      `/submissions/upload-pdf/${courseId}?assignment_title=${encodeURIComponent(assignmentTitle)}`,
+      formData,
+      { headers: { 'Content-Type': 'multipart/form-data' } }
+    );
+    return res.data;
+  },
+  getAllSubmissions: async (courseId: number) => {
+    const res = await api.get(`/submissions/all/${courseId}`);
+    return res.data;
+  },
+};
+
+// Professor-only APIs
+export const professorAPI = {
+  getStudentReport: async (courseId: number, userId: number) => {
+    const res = await api.get(`/students/report/${courseId}/${userId}`);
     return res.data;
   },
 };

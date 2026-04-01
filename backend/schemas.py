@@ -12,6 +12,7 @@ class UserCreate(BaseModel):
     """Schema for user registration."""
     username: str
     password: str
+    role: str = "student"  # "student" or "professor"
 
 
 class UserLogin(BaseModel):
@@ -24,6 +25,7 @@ class UserResponse(BaseModel):
     """Schema for user response (no password)."""
     id: int
     username: str
+    role: str
     created_at: datetime
     
     class Config:

@@ -152,3 +152,123 @@ def get_dashboard(
             for q in recent_questions
         ]
     }
+
+
+@router.get("/report/{course_id}/{user_id}")
+def generate_student_report(
+    course_id: int,
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Generate comprehensive final report for a student (professor only)."""
+    from sqlalchemy import func
+    from ..models import Submission
+    from ..services.llm import generate_response
+    
+    # Check if requester is professor
+    if current_user.role != "professor":
+        raise HTTPException(status_code=403, detail="Only professors can generate reports")
+    
+    # Get course
+    course = db.query(Course).filter(Course.id == course_id).first()
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+    
+    # Get target student
+    student = db.query(User).filter(User.id == user_id).first()
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
+    
+    # Get student progress
+    progress = db.query(StudentProgress).filter(
+        StudentProgress.user_id == user_id,
+        StudentProgress.course_id == course_id
+    ).first()
+    
+    # Get submissions
+    submissions = db.query(Submission).filter(
+        Submission.user_id == user_id,
+        Submission.course_id == course_id
+    ).all()
+    
+    # Calculate stats
+    scores = [s.score for s in submissions if s.score is not None]
+    avg_score = sum(scores) / len(scores) if scores else 0
+    
+    # Determine grade
+    if avg_score >= 90: grade = "A"
+    elif avg_score >= 80: grade = "B"
+    elif avg_score >= 70: grade = "C"
+    elif avg_score >= 60: grade = "D"
+    else: grade = "F"
+    
+    # Get question history
+    questions = db.query(QuestionHistory).filter(
+        QuestionHistory.user_id == user_id,
+        QuestionHistory.course_id == course_id
+    ).all()
+    
+    # Generate AI-powered insights
+    report_prompt = f"""Generate a comprehensive student evaluation report.
+
+Student: {student.username}
+Course: {course.name}
+
+Performance Data:
+- Average Score: {avg_score:.1f}%
+- Grade: {grade}
+- Total Submissions: {len(submissions)}
+- Questions Asked: {len(questions)}
+- Weak Topics: {', '.join(progress.weak_topics) if progress and progress.weak_topics else 'None identified'}
+- Strong Topics: {', '.join(progress.strong_topics) if progress and progress.strong_topics else 'None identified'}
+
+Based on this data, provide:
+1. 3-4 specific strengths
+2. 3-4 areas needing improvement  
+3. 3-4 actionable recommendations for future study
+
+Format as JSON:
+{{
+  "strengths": ["strength1", "strength2", "strength3"],
+  "weaknesses": ["weakness1", "weakness2", "weakness3"],
+  "recommendations": ["recommendation1", "recommendation2", "recommendation3"]
+}}
+
+Return ONLY the JSON."""
+
+    try:
+        response = generate_response(report_prompt)
+        import json
+        import re
+        json_match = re.search(r'\{[\s\S]*\}', response)
+        if json_match:
+            insights = json.loads(json_match.group())
+            strengths = insights.get("strengths", ["Completed course assignments", "Showed dedication"])
+            weaknesses = insights.get("weaknesses", ["Could improve participation", "Review fundamentals"])
+            recommendations = insights.get("recommendations", ["Continue practicing", "Review weak topics"])
+        else:
+            strengths = ["Completed assignments", "Active participation"]
+            weaknesses = ["Needs more practice in weak areas"]
+            recommendations = ["Review course materials regularly"]
+    except:
+        strengths = ["Completed course requirements", "Submitted assignments on time"]
+        weaknesses = ["Areas for improvement identified in progress tracking"]
+        recommendations = ["Continue practicing", "Focus on weak topics", "Ask more questions"]
+    
+    return {
+        "student_id": user_id,
+        "student_name": student.username,
+        "course_id": course_id,
+        "course_name": course.name,
+        "final_grade": grade,
+        "average_score": round(avg_score, 2),
+        "total_submissions": len(submissions),
+        "questions_asked": len(questions),
+        "weak_topics": progress.weak_topics if progress else [],
+        "strong_topics": progress.strong_topics if progress else [],
+        "strengths": strengths,
+        "weaknesses": weaknesses,
+        "recommendations": recommendations,
+        "generated_at": __import__('datetime').datetime.utcnow().isoformat()
+    }

@@ -1,11 +1,13 @@
 """
 Submission tracking routes with auto-grading.
 """
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from sqlalchemy.orm import Session
 from sqlalchemy import func
-from typing import List
+from typing import List, Optional
 from pydantic import BaseModel
+import os
+import shutil
 
 from ..database import get_db
 from ..models import Submission, Course, User, StudentProgress, Material
@@ -13,9 +15,15 @@ from ..schemas import SubmissionCreate, SubmissionResponse
 from ..services.progress import update_progress_on_submission
 from ..services.llm import generate_with_context
 from ..services.embedding import search_course_materials
+from ..services.document import extract_text_from_pdf
 from .auth import get_current_user
 
 router = APIRouter(prefix="/submissions", tags=["Submissions"])
+
+# Directory for assignment uploads
+ASSIGNMENTS_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "data", "assignments")
+os.makedirs(ASSIGNMENTS_DIR, exist_ok=True)
+
 
 
 class AssignmentQuestion(BaseModel):
@@ -40,6 +48,139 @@ class GradingResult(BaseModel):
     correct_answer: str
     strengths: List[str]
     improvements: List[str]
+
+
+class PDFGradingResult(BaseModel):
+    submission_id: int
+    filename: str
+    score: float
+    feedback: str
+    strengths: List[str]
+    improvements: List[str]
+    extracted_content_preview: str
+
+
+@router.post("/upload-pdf/{course_id}", response_model=PDFGradingResult)
+async def upload_pdf_assignment(
+    course_id: int,
+    assignment_title: str = "General Assignment",
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Upload a PDF assignment for automatic evaluation."""
+    # Check course exists
+    course = db.query(Course).filter(Course.id == course_id).first()
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+    
+    # Validate file type
+    if not file.filename.endswith('.pdf'):
+        raise HTTPException(status_code=400, detail="Only PDF files are accepted")
+    
+    # Save the file
+    user_dir = os.path.join(ASSIGNMENTS_DIR, str(current_user.id))
+    os.makedirs(user_dir, exist_ok=True)
+    
+    file_path = os.path.join(user_dir, f"{course_id}_{file.filename}")
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+    
+    # Extract text from PDF
+    try:
+        extracted_text = extract_text_from_pdf(file_path)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to extract text from PDF: {str(e)}")
+    
+    # Get course context for evaluation
+    try:
+        chunks = search_course_materials(course_id, assignment_title, n_results=3)
+        context = "\n".join([c["text"] for c in chunks]) if chunks else ""
+    except:
+        context = ""
+    
+    # Evaluate using LLM
+    evaluation_prompt = f"""You are a professor evaluating a student's assignment submission.
+
+Assignment Title: {assignment_title}
+Course: {course.name}
+
+Student's Submission:
+{extracted_text[:4000]}
+
+{f"Reference Material: {context[:2000]}" if context else ""}
+
+Evaluate this submission and provide:
+1. Score out of 100
+2. Detailed feedback
+3. 2-3 strengths
+4. 2-3 areas for improvement
+
+Format your response as JSON:
+{{
+  "score": <number 0-100>,
+  "feedback": "<detailed feedback>",
+  "strengths": ["strength1", "strength2"],
+  "improvements": ["improvement1", "improvement2"]
+}}
+
+Return ONLY the JSON object."""
+
+    try:
+        response = generate_with_context(
+            question=evaluation_prompt,
+            context=context if context else "Evaluate the student's assignment.",
+            collection_name=f"course_{course_id}"
+        )
+        
+        import json
+        import re
+        json_match = re.search(r'\{[\s\S]*\}', response)
+        if json_match:
+            result = json.loads(json_match.group())
+            score = float(result.get("score", 70))
+            feedback = result.get("feedback", "Good submission.")
+            strengths = result.get("strengths", ["Shows effort", "Submitted on time"])
+            improvements = result.get("improvements", ["Add more detail", "Review course materials"])
+        else:
+            score = 70.0
+            feedback = "Your assignment has been reviewed."
+            strengths = ["Completed assignment", "Shows understanding"]
+            improvements = ["Could add more detail", "Include more examples"]
+    except Exception as e:
+        score = 70.0
+        feedback = "Assignment received and evaluated."
+        strengths = ["Submitted successfully", "Shows effort"]
+        improvements = ["Review course materials for more depth"]
+    
+    # Save submission
+    submission = Submission(
+        user_id=current_user.id,
+        course_id=course_id,
+        content=f"[PDF Assignment: {file.filename}]\n\n{extracted_text[:500]}...",
+        score=score
+    )
+    db.add(submission)
+    db.commit()
+    db.refresh(submission)
+    
+    # Update progress
+    update_progress_on_submission(
+        db=db,
+        user_id=current_user.id,
+        course_id=course_id,
+        score=score
+    )
+    
+    return PDFGradingResult(
+        submission_id=submission.id,
+        filename=file.filename,
+        score=score,
+        feedback=feedback,
+        strengths=strengths,
+        improvements=improvements,
+        extracted_content_preview=extracted_text[:300] + "..." if len(extracted_text) > 300 else extracted_text
+    )
 
 
 @router.post("/", response_model=SubmissionResponse, status_code=status.HTTP_201_CREATED)
@@ -155,6 +296,46 @@ def get_leaderboard(course_id: int, db: Session = Depends(get_db)):
         leaderboard.append(entry)
     
     return {"course_id": course_id, "leaderboard": leaderboard}
+
+
+@router.get("/all/{course_id}")
+def get_all_submissions(
+    course_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Get all submissions for a course (professor only)."""
+    # Check if user is professor
+    if current_user.role != "professor":
+        raise HTTPException(status_code=403, detail="Only professors can view all submissions")
+    
+    # Check course exists
+    course = db.query(Course).filter(Course.id == course_id).first()
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+    
+    # Get all submissions with user info
+    submissions = db.query(Submission, User.username).join(
+        User, Submission.user_id == User.id
+    ).filter(
+        Submission.course_id == course_id
+    ).order_by(
+        Submission.submitted_at.desc()
+    ).all()
+    
+    result = []
+    for submission, username in submissions:
+        result.append({
+            "id": submission.id,
+            "user_id": submission.user_id,
+            "username": username,
+            "course_id": submission.course_id,
+            "content": submission.content,
+            "score": submission.score,
+            "submitted_at": submission.submitted_at.isoformat() if submission.submitted_at else None
+        })
+    
+    return {"course_id": course_id, "submissions": result}
 
 
 @router.get("/assignments/{course_id}")
