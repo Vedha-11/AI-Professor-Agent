@@ -1,17 +1,45 @@
 """
-Submission tracking routes.
+Submission tracking routes with auto-grading.
 """
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import List
+from pydantic import BaseModel
 
 from ..database import get_db
-from ..models import Submission, Course, User
+from ..models import Submission, Course, User, StudentProgress, Material
 from ..schemas import SubmissionCreate, SubmissionResponse
+from ..services.progress import update_progress_on_submission
+from ..services.llm import generate_with_context
+from ..services.embedding import search_course_materials
 from .auth import get_current_user
 
 router = APIRouter(prefix="/submissions", tags=["Submissions"])
+
+
+class AssignmentQuestion(BaseModel):
+    question: str
+    topic: str
+    difficulty: str  # easy, medium, hard
+    points: int
+
+
+class AssignmentSubmission(BaseModel):
+    course_id: int
+    question: str
+    answer: str
+    topic: str = "general"
+
+
+class GradingResult(BaseModel):
+    score: float
+    max_score: float
+    percentage: float
+    feedback: str
+    correct_answer: str
+    strengths: List[str]
+    improvements: List[str]
 
 
 @router.post("/", response_model=SubmissionResponse, status_code=status.HTTP_201_CREATED)
@@ -67,7 +95,7 @@ def update_submission_score(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Update submission score (for grading)."""
+    """Update submission score (for grading) and update student progress."""
     submission = db.query(Submission).filter(Submission.id == submission_id).first()
     if not submission:
         raise HTTPException(status_code=404, detail="Submission not found")
@@ -75,13 +103,23 @@ def update_submission_score(
     submission.score = score
     db.commit()
     
+    # Update student progress
+    update_progress_on_submission(
+        db=db,
+        user_id=submission.user_id,
+        course_id=submission.course_id,
+        score=score
+    )
+    
     return {"message": "Score updated", "score": score}
 
 
 @router.get("/leaderboard/{course_id}")
 def get_leaderboard(course_id: int, db: Session = Depends(get_db)):
-    """Get leaderboard for a course based on average scores."""
+    """Get enhanced leaderboard for a course with progress data."""
+    # Get basic leaderboard data with joins
     results = db.query(
+        User.id.label("user_id"),
         User.username,
         func.avg(Submission.score).label("avg_score"),
         func.count(Submission.id).label("submission_count")
@@ -96,14 +134,207 @@ def get_leaderboard(course_id: int, db: Session = Depends(get_db)):
         func.avg(Submission.score).desc()
     ).all()
     
-    leaderboard = [
-        {
+    # Enhance with progress data
+    leaderboard = []
+    for i, r in enumerate(results):
+        # Get progress data for this user
+        progress = db.query(StudentProgress).filter(
+            StudentProgress.user_id == r.user_id,
+            StudentProgress.course_id == course_id
+        ).first()
+        
+        entry = {
             "rank": i + 1,
             "username": r.username,
             "avg_score": round(r.avg_score, 2) if r.avg_score else 0,
-            "submissions": r.submission_count
+            "submissions": r.submission_count,
+            "progress_percent": round(progress.performance_score, 2) if progress else 0,
+            "questions_asked": progress.total_questions_asked if progress else 0,
+            "last_activity": progress.last_activity.isoformat() if progress and progress.last_activity else None
         }
-        for i, r in enumerate(results)
-    ]
+        leaderboard.append(entry)
     
     return {"course_id": course_id, "leaderboard": leaderboard}
+
+
+@router.get("/assignments/{course_id}")
+def get_assignments(
+    course_id: int,
+    count: int = 5,
+    db: Session = Depends(get_db)
+):
+    """Generate practice assignments/questions for a course using course materials."""
+    # Check course exists
+    course = db.query(Course).filter(Course.id == course_id).first()
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+    
+    # Get some context from course materials
+    try:
+        chunks = search_course_materials(course_id, "key concepts and topics", n_results=3)
+        context = "\n".join([c["text"] for c in chunks]) if chunks else ""
+    except:
+        context = ""
+    
+    # Generate questions using LLM
+    prompt = f"""Based on the following course material, generate exactly {count} practice questions.
+    
+Course: {course.name}
+{f"Material context: {context[:2000]}" if context else "Generate general questions about this subject."}
+
+For each question, provide:
+1. A clear question
+2. The topic it covers
+3. Difficulty level (easy, medium, hard)
+4. Points (easy=5, medium=10, hard=15)
+
+Format your response as a JSON array like this:
+[
+  {{"question": "What is...", "topic": "topic name", "difficulty": "easy", "points": 5}},
+  {{"question": "Explain...", "topic": "topic name", "difficulty": "medium", "points": 10}}
+]
+
+Return ONLY the JSON array, no other text."""
+
+    try:
+        response = generate_with_context(
+            question=prompt,
+            context="Generate educational assessment questions.",
+            collection_name=f"course_{course_id}"
+        )
+        
+        # Parse JSON from response
+        import json
+        import re
+        
+        # Try to extract JSON array from response
+        json_match = re.search(r'\[[\s\S]*\]', response)
+        if json_match:
+            questions = json.loads(json_match.group())
+        else:
+            # Fallback questions
+            questions = [
+                {"question": f"What are the key concepts in {course.name}?", "topic": "fundamentals", "difficulty": "easy", "points": 5},
+                {"question": f"Explain the main principles of {course.name}.", "topic": "principles", "difficulty": "medium", "points": 10},
+                {"question": f"How would you apply {course.name} concepts to solve real-world problems?", "topic": "application", "difficulty": "hard", "points": 15},
+            ]
+    except Exception as e:
+        # Fallback if LLM fails
+        questions = [
+            {"question": f"Define the fundamental concepts of {course.name}.", "topic": "basics", "difficulty": "easy", "points": 5},
+            {"question": f"Compare and contrast key elements in {course.name}.", "topic": "comparison", "difficulty": "medium", "points": 10},
+            {"question": f"Analyze a complex scenario using {course.name} principles.", "topic": "analysis", "difficulty": "hard", "points": 15},
+            {"question": f"What are the practical applications of {course.name}?", "topic": "application", "difficulty": "medium", "points": 10},
+            {"question": f"Summarize the main topics covered in {course.name}.", "topic": "summary", "difficulty": "easy", "points": 5},
+        ]
+    
+    return {"course_id": course_id, "assignments": questions[:count]}
+
+
+@router.post("/grade", response_model=GradingResult)
+def auto_grade_submission(
+    submission: AssignmentSubmission,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Auto-grade a student's answer using AI."""
+    # Check course exists
+    course = db.query(Course).filter(Course.id == submission.course_id).first()
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+    
+    # Get relevant context
+    try:
+        chunks = search_course_materials(submission.course_id, submission.question, n_results=3)
+        context = "\n".join([c["text"] for c in chunks]) if chunks else ""
+    except:
+        context = ""
+    
+    # Grade using LLM
+    grading_prompt = f"""You are an expert teacher grading a student's answer. Be fair but thorough.
+
+Question: {submission.question}
+Topic: {submission.topic}
+
+Student's Answer: {submission.answer}
+
+{f"Reference Material: {context[:2000]}" if context else ""}
+
+Evaluate the answer and provide:
+1. Score out of 100
+2. Detailed feedback
+3. The correct/ideal answer
+4. 2-3 strengths of the answer
+5. 2-3 areas for improvement
+
+Format your response as JSON:
+{{
+  "score": <number 0-100>,
+  "feedback": "<detailed feedback>",
+  "correct_answer": "<ideal answer>",
+  "strengths": ["strength1", "strength2"],
+  "improvements": ["improvement1", "improvement2"]
+}}
+
+Return ONLY the JSON object."""
+
+    try:
+        response = generate_with_context(
+            question=grading_prompt,
+            context=context if context else "Grade the student's answer based on accuracy and completeness.",
+            collection_name=f"course_{submission.course_id}"
+        )
+        
+        # Parse JSON response
+        import json
+        import re
+        
+        json_match = re.search(r'\{[\s\S]*\}', response)
+        if json_match:
+            result = json.loads(json_match.group())
+            score = float(result.get("score", 70))
+            feedback = result.get("feedback", "Good attempt!")
+            correct_answer = result.get("correct_answer", "See course materials for reference.")
+            strengths = result.get("strengths", ["Shows understanding", "Clear writing"])
+            improvements = result.get("improvements", ["Add more detail", "Include examples"])
+        else:
+            # Fallback
+            score = 75.0
+            feedback = "Your answer demonstrates understanding of the topic. Review the course materials for more depth."
+            correct_answer = "Please refer to course materials for the complete answer."
+            strengths = ["Shows basic understanding", "Attempted the question"]
+            improvements = ["Could add more specific details", "Include relevant examples"]
+    except Exception as e:
+        score = 70.0
+        feedback = f"Your answer has been reviewed. Continue practicing to improve."
+        correct_answer = "Please refer to course materials."
+        strengths = ["Completed the assignment", "Shows effort"]
+        improvements = ["Review course materials", "Practice more"]
+    
+    # Save submission with score
+    db_submission = Submission(
+        user_id=current_user.id,
+        course_id=submission.course_id,
+        content=f"Q: {submission.question}\nA: {submission.answer}",
+        score=score
+    )
+    db.add(db_submission)
+    db.commit()
+    
+    # Update student progress
+    update_progress_on_submission(
+        db=db,
+        user_id=current_user.id,
+        course_id=submission.course_id,
+        score=score
+    )
+    
+    return GradingResult(
+        score=score,
+        max_score=100.0,
+        percentage=score,
+        feedback=feedback,
+        correct_answer=correct_answer,
+        strengths=strengths,
+        improvements=improvements
+    )

@@ -6,7 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .database import create_tables
-from .routes import auth, courses, materials, ingest, qa, submissions
+from .routes import auth, courses, materials, ingest, qa, submissions, students
 
 
 @asynccontextmanager
@@ -18,8 +18,8 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="AI Professor Agent",
-    description="Course-specific AI tutoring system",
-    version="0.1.0",
+    description="Course-specific AI tutoring system with personalized learning",
+    version="0.2.0",
     lifespan=lifespan
 )
 
@@ -30,6 +30,7 @@ app.include_router(materials.router)
 app.include_router(ingest.router)
 app.include_router(qa.router)
 app.include_router(submissions.router)
+app.include_router(students.router)
 
 # CORS for Streamlit frontend
 app.add_middleware(

@@ -42,7 +42,8 @@ def generate_with_context(
     question: str,
     context_chunks: list[dict],
     course_name: str,
-    model: str = DEFAULT_MODEL
+    model: str = DEFAULT_MODEL,
+    student_profile: dict = None
 ) -> str:
     """
     Generate a professor-like response using RAG context.
@@ -52,6 +53,7 @@ def generate_with_context(
         context_chunks: Retrieved relevant chunks from vector store
         course_name: Name of the course for persona
         model: The LLM model to use
+        student_profile: Optional student profile for personalization
     
     Returns:
         Professor's response
@@ -62,6 +64,25 @@ def generate_with_context(
         for c in context_chunks
     ])
     
+    # Build personalization section
+    personalization = ""
+    if student_profile:
+        weak = ", ".join(student_profile.get("weak_topics", [])) or "None identified yet"
+        strong = ", ".join(student_profile.get("strong_topics", [])) or "None identified yet"
+        perf = student_profile.get("performance_score", 0)
+        
+        personalization = f"""
+STUDENT PROFILE:
+- Weak topics: {weak}
+- Strong topics: {strong}
+- Performance score: {perf:.1f}%
+
+Adapt your explanation based on this profile:
+- If the question relates to weak topics, provide extra detail and examples
+- If performance is below 70%, use simpler language and more step-by-step explanations
+- Encourage improvement in weak areas while building on strengths
+"""
+    
     # Professor persona system prompt
     system_prompt = f"""You are a knowledgeable and helpful professor teaching "{course_name}".
 
@@ -71,7 +92,7 @@ Your role is to:
 - Explain concepts in an educational, approachable manner
 - If the answer isn't in the materials, say so honestly
 - Encourage further learning and curiosity
-
+{personalization}
 Always maintain a warm, professional, and supportive tone like a real professor would."""
 
     # User prompt with context

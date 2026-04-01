@@ -9,6 +9,11 @@ from ..models import Course
 from ..schemas import QuestionRequest, AnswerResponse
 from ..services.embedding import search_course_materials
 from ..services.llm import generate_with_context, check_ollama_available
+from ..services.progress import (
+    get_student_profile,
+    update_progress_on_question,
+    extract_topic
+)
 from .auth import get_current_user
 
 router = APIRouter(prefix="/qa", tags=["Q&A"])
@@ -31,6 +36,7 @@ def ask_question(
     
     Uses RAG to retrieve relevant course materials and generates
     a professor-like response using the local LLM.
+    Includes personalized response based on student profile.
     """
     # Get course
     course = db.query(Course).filter(Course.id == request.course_id).first()
@@ -45,6 +51,19 @@ def ask_question(
             detail="LLM service not available. Please ensure Ollama is running."
         )
     
+    # Extract topic and update progress
+    topic = extract_topic(request.question, course.name)
+    update_progress_on_question(
+        db=db,
+        user_id=current_user.id,
+        course_id=request.course_id,
+        question=request.question,
+        topic=topic
+    )
+    
+    # Get student profile for personalization
+    student_profile = get_student_profile(db, current_user.id, request.course_id)
+    
     # Search for relevant context
     context_chunks = search_course_materials(
         course_id=request.course_id,
@@ -58,12 +77,13 @@ def ask_question(
             detail="No course materials found. Please upload and ingest materials first."
         )
     
-    # Generate response with professor persona
+    # Generate response with professor persona and student profile
     try:
         answer = generate_with_context(
             question=request.question,
             context_chunks=context_chunks,
-            course_name=course.name
+            course_name=course.name,
+            student_profile=student_profile
         )
         
         # Extract source filenames

@@ -1,9 +1,12 @@
+
+
+
 """
 AI Professor Agent - Streamlit Frontend
 """
 import streamlit as st
 import requests
-import os
+import time
 
 st.set_page_config(
     page_title="AI Professor",
@@ -17,37 +20,51 @@ BACKEND_URL = "http://127.0.0.1:8000"
 def check_backend():
     """Check if backend is running."""
     try:
-        resp = requests.get(f"{BACKEND_URL}/health", timeout=2)
+        resp = requests.get(f"{BACKEND_URL}/health", timeout=5)
         return resp.status_code == 200
-    except requests.RequestException:
+    except:
         return False
 
 
 def get_courses():
     """Fetch all courses."""
     try:
-        resp = requests.get(f"{BACKEND_URL}/courses/", timeout=5)
+        resp = requests.get(f"{BACKEND_URL}/courses/", timeout=10)
         if resp.status_code == 200:
             return resp.json()
-    except requests.RequestException:
+    except:
         pass
     return []
 
 
-def ask_question(course_id: int, question: str):
-    """Ask a question to the AI Professor."""
-    try:
-        resp = requests.post(
-            f"{BACKEND_URL}/qa/ask-simple",
-            json={"course_id": course_id, "question": question},
-            timeout=120
-        )
-        if resp.status_code == 200:
-            return resp.json()
-        else:
-            return {"error": resp.json().get("detail", "Unknown error")}
-    except requests.RequestException as e:
-        return {"error": str(e)}
+def ask_question(course_id: int, question: str, max_retries: int = 3):
+    """Ask a question to the AI Professor with retry logic."""
+    for attempt in range(max_retries):
+        try:
+            resp = requests.post(
+                f"{BACKEND_URL}/qa/ask-simple",
+                json={"course_id": course_id, "question": question},
+                timeout=180  # 3 minutes timeout for slow LLM
+            )
+            if resp.status_code == 200:
+                return resp.json()
+            else:
+                error_detail = "Unknown error"
+                try:
+                    error_detail = resp.json().get("detail", error_detail)
+                except:
+                    pass
+                return {"error": f"Server error: {error_detail}"}
+        except requests.exceptions.Timeout:
+            if attempt < max_retries - 1:
+                time.sleep(2)
+                continue
+            return {"error": "Request timed out. The AI is taking too long. Please try a shorter question."}
+        except requests.exceptions.ConnectionError:
+            return {"error": "Cannot connect to backend. Make sure the server is running."}
+        except Exception as e:
+            return {"error": f"Request failed: {str(e)}"}
+    return {"error": "Failed after multiple retries"}
 
 
 # Initialize session state
