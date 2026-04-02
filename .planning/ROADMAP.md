@@ -1,8 +1,8 @@
-# Roadmap: AI Professor Agent
+# Roadmap: Acad AI
 
 ## Overview
 
-This roadmap delivers a complete AI tutoring system in 10 phases: from project scaffolding through database setup, authentication, file upload, document ingestion, vector storage, RAG Q&A, submissions, frontend UI, and final integration. Each phase delivers a working, testable component that builds toward the full professor-like AI tutor experience.
+This roadmap delivers a complete AI tutoring system in 10 phases: from project scaffolding through database setup, authentication, file upload, document ingestion, vector storage, RAG Q&A, submissions, frontend UI, and final integration. Each phase delivers a working, testable component that builds toward the full professor-like AI tutor experience. Frontend is React + TypeScript with Tailwind CSS.
 
 ## Phases
 
@@ -119,7 +119,7 @@ Plans:
 **Plans**: TBD
 
 ### Phase 9: Frontend UI
-**Goal**: Complete Streamlit interface enabling students to interact with all features
+**Goal**: Complete React + TypeScript interface enabling students to interact with all features
 **Depends on**: Phases 7, 8
 **Requirements**: QNA-05
 **Success Criteria** (what must be TRUE):

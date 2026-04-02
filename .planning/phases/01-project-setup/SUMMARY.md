@@ -1,6 +1,6 @@
 # Phase 1 Summary: Project Setup
 
-## Status: ✅ COMPLETE
+## Status: ✅ COMPLETE (Updated for Acad AI)
 
 ## What Was Built
 
@@ -8,7 +8,7 @@
 |------|-------------|--------|
 | 1 | Project structure + dependencies | ✅ Done |
 | 2 | FastAPI backend skeleton | ✅ Done |
-| 3 | Streamlit frontend skeleton | ✅ Done |
+| 3 | React frontend (Acad AI) | ✅ Done (replaces Streamlit) |
 
 ## Files Created
 
@@ -17,9 +17,11 @@ backend/
 ├── __init__.py
 └── main.py          # FastAPI app with /health endpoint
 
-frontend/
-├── __init__.py
-└── app.py           # Streamlit UI skeleton
+frontend-react/      # Modern React + TypeScript frontend
+├── src/
+├── package.json
+├── vite.config.ts
+└── tailwind.config.js
 
 data/
 └── .gitkeep         # Placeholder for SQLite DB
@@ -36,7 +38,7 @@ venv/               # Python virtual environment
 | venv created | ✅ Pass |
 | Dependencies installed | ✅ Pass |
 | FastAPI /health responds | ✅ Pass |
-| Streamlit app loads | ✅ Pass |
+| React frontend builds | ✅ Pass |
 | Ollama installed | ⚠️ Not found |
 
 ## Important Note

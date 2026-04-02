@@ -1,8 +1,8 @@
-# AI Professor Agent
+# Acad AI
 
 ## What This Is
 
-A course-agnostic AI tutoring system that acts as a virtual professor — answering student questions using RAG over course materials, tracking submissions, maintaining participation-based leaderboards, and providing rubric-based evaluation. Built entirely with free, open-source tools running locally for a college project demonstration.
+An improved AI tutoring system that acts as a virtual professor — answering student questions using RAG over course materials, tracking submissions, maintaining participation-based leaderboards, and providing rubric-based evaluation. Built entirely with free, open-source tools running locally for a college project demonstration. Features a modern React + TypeScript frontend for a polished user experience.
 
 ## Core Value
 
@@ -53,8 +53,8 @@ Students can ask questions about any course and receive contextually accurate, p
 - Embeddings: HuggingFace sentence-transformers
 - Vector DB: ChromaDB
 - Database: SQLite
-- Backend: FastAPI or Node.js
-- Frontend: React or Streamlit
+- Backend: FastAPI
+- Frontend: React + TypeScript + Vite + Tailwind CSS
 
 ## Constraints
 
@@ -68,8 +68,8 @@ Students can ask questions about any course and receive contextually accurate, p
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| FastAPI over Node.js | Python ecosystem better for ML/embeddings integration | — Pending |
-| Streamlit over React | Faster to build for 1-day timeline, good for demos | — Pending |
+| FastAPI over Node.js | Python ecosystem better for ML/embeddings integration | ✓ Good |
+| React over Streamlit | Modern UI, better UX, reusable components | ✓ Good |
 | SQLite over PostgreSQL | Zero setup, file-based, sufficient for demo scale | — Pending |
 | ChromaDB for vectors | Simple API, works well with sentence-transformers | — Pending |
 | Participation + scores for leaderboard | User preference, balances engagement with performance | ✓ Good |
