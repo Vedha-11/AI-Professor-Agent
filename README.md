@@ -1,18 +1,34 @@
-# 🎓 AI Professor Agent
+# 🎓 Acad AI - AI Professor Agent
 
-A **course-specific AI tutoring system** that runs 100% locally on your machine. Upload your course materials (PDFs, notes, syllabi), and get intelligent, context-aware answers from an AI professor powered by local LLMs.
+A **next-generation AI tutoring system** with role-based access for students and professors. Features RAG-powered Q&A, automatic assignment grading, progress tracking, and leaderboards—all running 100% locally with free, open-source tools.
+
+![React](https://img.shields.io/badge/React-18-61DAFB?logo=react)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-009688?logo=fastapi)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind-3-06B6D4?logo=tailwindcss)
 
 ---
 
 ## ✨ Features
 
-- **📚 Course-Specific RAG**: Upload materials per course; the AI answers questions using only relevant course content
-- **🔒 100% Local & Private**: All processing happens on your machine—no data leaves your computer
-- **🤖 Professor Persona**: The AI responds in a warm, educational tone like a real professor
-- **📄 Source Citations**: See which course materials were used to generate each answer
-- **👥 Multi-User Support**: User authentication with JWT tokens
-- **📝 Submissions & Leaderboard**: Students can submit work and track scores
-- **💬 Chat Interface**: Intuitive Streamlit-based chat UI
+### 👨‍🎓 For Students
+- **💬 AI Chat**: Ask questions and get professor-like responses from course materials
+- **📝 Assignments**: Take auto-generated quizzes and submit PDF assignments
+- **📊 Progress Tracking**: View scores, weak topics, and personalized recommendations
+- **🏆 Leaderboard**: Compete with classmates based on performance
+
+### 👨‍🏫 For Professors
+- **📚 Material Upload**: Upload PDFs, notes, and syllabi per course
+- **👥 Student Management**: View all students and their progress
+- **📋 Submissions Review**: See all student submissions with scores
+- **📈 Evaluations**: Generate comprehensive student reports with AI insights
+
+### 🔒 Core Features
+- **100% Local & Private**: No data leaves your machine
+- **Role-Based Access**: Separate UIs for students and professors
+- **RAG-Powered Q&A**: Context-aware answers from uploaded materials
+- **Auto-Grading**: LLM-based assignment evaluation with feedback
+- **Source Citations**: See which materials were used for each answer
 
 ---
 
@@ -20,36 +36,46 @@ A **course-specific AI tutoring system** that runs 100% locally on your machine.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│                         STREAMLIT FRONTEND                         │
-│                    (app.py - Chat Interface)                       │
+│                    REACT + TYPESCRIPT FRONTEND                      │
+│                 (Vite + Tailwind CSS + Lucide Icons)                │
+│  ┌──────────────────────────────┐  ┌──────────────────────────────┐ │
+│  │      STUDENT DASHBOARD       │  │     PROFESSOR DASHBOARD      │ │
+│  │  • Chat with AI Professor    │  │  • Upload Course Materials   │ │
+│  │  • Take Assignments          │  │  • View All Submissions      │ │
+│  │  • View Progress & Scores    │  │  • Student Evaluations       │ │
+│  │  • Leaderboard               │  │  • Generate Reports          │ │
+│  └──────────────────────────────┘  └──────────────────────────────┘ │
 └─────────────────────────┬───────────────────────────────────────────┘
-                          │ HTTP/REST
+                          │ HTTP/REST API
                           ▼
 ┌─────────────────────────────────────────────────────────────────────┐
 │                        FASTAPI BACKEND                              │
 │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌────────────┐ │
 │  │    Auth     │  │   Courses   │  │  Materials  │  │    Q&A     │ │
-│  │   Routes    │  │   Routes    │  │   Routes    │  │   Routes   │ │
+│  │  (JWT)      │  │   (CRUD)    │  │  (Upload)   │  │   (RAG)    │ │
 │  └─────────────┘  └─────────────┘  └─────────────┘  └────────────┘ │
 │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────────────┐ │
-│  │   Ingest    │  │ Submissions │  │          SERVICES           │ │
-│  │   Routes    │  │   Routes    │  │  • LLM (Ollama)             │ │
+│  │   Ingest    │  │ Submissions │  │         SERVICES            │ │
+│  │ (Embedding) │  │ (Grading)   │  │  • LLM (Ollama)             │ │
 │  └─────────────┘  └─────────────┘  │  • Embeddings (ChromaDB)    │ │
-│                                     │  • Document Processing      │ │
-│                                     └─────────────────────────────┘ │
+│  ┌─────────────┐  ┌─────────────┐  │  • Progress Tracking        │ │
+│  │  Students   │  │  Progress   │  │  • Document Processing      │ │
+│  │ (Reports)   │  │ (Tracking)  │  └─────────────────────────────┘ │
+│  └─────────────┘  └─────────────┘                                   │
 └─────────────────────────┬────────────────────────┬──────────────────┘
                           │                        │
                           ▼                        ▼
               ┌─────────────────────┐   ┌─────────────────────┐
               │   SQLite Database   │   │   ChromaDB Vector   │
               │   (professor.db)    │   │       Store         │
-              │                     │   │   (embeddings)      │
-              │  • Users            │   │                     │
-              │  • Courses          │   └─────────────────────┘
-              │  • Materials        │              │
-              │  • Submissions      │              ▼
-              └─────────────────────┘   ┌─────────────────────┐
-                                        │    Ollama (LLM)     │
+              │                     │   │                     │
+              │  • Users (roles)    │   │  • Course embeddings│
+              │  • Courses          │   │  • Semantic search  │
+              │  • Materials        │   └─────────────────────┘
+              │  • Submissions      │              │
+              │  • Progress         │              ▼
+              │  • Question History │   ┌─────────────────────┐
+              └─────────────────────┘   │    Ollama (LLM)     │
                                         │   phi3 / mistral    │
                                         └─────────────────────┘
 ```
@@ -60,498 +86,271 @@ A **course-specific AI tutoring system** that runs 100% locally on your machine.
 
 | Component | Technology | Purpose |
 |-----------|------------|---------|
-| **Backend** | FastAPI (Python) | REST API server |
-| **Frontend** | Streamlit | Interactive chat UI |
-| **Database** | SQLite + SQLAlchemy | User, course, and submission data |
-| **Vector Store** | ChromaDB | Semantic search over course materials |
-| **Embeddings** | sentence-transformers (all-MiniLM-L6-v2) | Convert text to vectors |
-| **LLM** | Ollama (phi3/mistral) | Local language model inference |
-| **Authentication** | JWT + bcrypt | Secure user authentication |
-| **Document Processing** | PyPDF | Extract text from PDF files |
+| **Frontend** | React 18 + TypeScript | Modern, type-safe UI |
+| **Styling** | Tailwind CSS | Utility-first CSS framework |
+| **Build Tool** | Vite | Fast development & builds |
+| **Backend** | FastAPI (Python) | High-performance REST API |
+| **Database** | SQLite + SQLAlchemy | Relational data storage |
+| **Vector Store** | ChromaDB | Semantic search over materials |
+| **Embeddings** | sentence-transformers | Text to vector conversion |
+| **LLM** | Ollama (phi3/mistral) | Local AI inference |
+| **Auth** | JWT + bcrypt | Secure authentication |
 
 ---
 
 ## 📁 Project Structure
 
 ```
-LLM_Project/
+Acad-AI/
 ├── backend/
-│   ├── main.py              # FastAPI application entry point
-│   ├── database.py          # SQLAlchemy database setup
-│   ├── models.py            # ORM models (User, Course, Material, Submission)
-│   ├── schemas.py           # Pydantic schemas for validation
-│   ├── auth.py              # JWT authentication utilities
+│   ├── main.py              # FastAPI entry point
+│   ├── database.py          # SQLAlchemy setup
+│   ├── models.py            # User, Course, Material, Submission, Progress
+│   ├── schemas.py           # Pydantic validation schemas
+│   ├── auth.py              # JWT utilities
 │   ├── routes/
-│   │   ├── auth.py          # /auth/* endpoints (signup, login)
-│   │   ├── courses.py       # /courses/* endpoints (CRUD)
-│   │   ├── materials.py     # /materials/* endpoints (upload, list)
-│   │   ├── ingest.py        # /ingest/* endpoints (process & embed)
-│   │   ├── qa.py            # /qa/* endpoints (ask questions)
-│   │   └── submissions.py   # /submissions/* endpoints (submit work)
+│   │   ├── auth.py          # Login, signup, user info
+│   │   ├── courses.py       # Course CRUD
+│   │   ├── materials.py     # File upload & listing
+│   │   ├── ingest.py        # Document processing & embedding
+│   │   ├── qa.py            # RAG-powered Q&A
+│   │   ├── submissions.py   # Assignment submission & grading
+│   │   └── students.py      # Progress, recommendations, reports
 │   └── services/
-│       ├── llm.py           # Ollama LLM integration
-│       ├── embedding.py     # ChromaDB vector operations
-│       └── document.py      # PDF text extraction & chunking
-├── frontend/
-│   └── app.py               # Streamlit chat interface
+│       ├── llm.py           # Ollama integration
+│       ├── embedding.py     # ChromaDB operations
+│       ├── document.py      # PDF extraction & chunking
+│       └── progress.py      # Student progress tracking
+│
+├── frontend-react/
+│   ├── src/
+│   │   ├── App.tsx          # Route definitions
+│   │   ├── components/      # Reusable UI components
+│   │   ├── pages/
+│   │   │   ├── LoginPage.tsx
+│   │   │   ├── DashboardPage.tsx        # Student dashboard
+│   │   │   ├── ChatPage.tsx             # AI Q&A interface
+│   │   │   ├── AssignmentsPage.tsx      # Take assignments
+│   │   │   ├── LeaderboardPage.tsx      # Rankings
+│   │   │   ├── ProfessorDashboardPage.tsx
+│   │   │   ├── ProfessorSubmissionsPage.tsx
+│   │   │   ├── ProfessorEvaluationsPage.tsx
+│   │   │   └── UploadPage.tsx           # Material upload
+│   │   ├── hooks/
+│   │   │   └── useAuth.tsx  # Authentication context
+│   │   └── lib/
+│   │       ├── api.ts       # API client
+│   │       └── utils.ts     # Utility functions
+│   ├── package.json
+│   ├── tailwind.config.js
+│   └── vite.config.ts
+│
 ├── data/
-│   ├── professor.db         # SQLite database (auto-created)
-│   ├── chroma/              # ChromaDB vector store
-│   └── uploads/             # Uploaded course materials
+│   ├── professor.db         # SQLite database
+│   ├── chroma/              # Vector embeddings
+│   ├── uploads/             # Course materials
+│   └── assignments/         # Student submissions
+│
 ├── requirements.txt         # Python dependencies
-├── DEMO.md                  # Demo script and API examples
-└── README.md                # This file
+└── README.md
 ```
 
 ---
 
-## 🚀 Complete Installation Guide (Any PC)
+## 🚀 Quick Start
 
-> **One-click launcher included!** After setup, just double-click `start.bat` (Windows) or run `./start.sh` (Mac/Linux) to launch everything.
+### Prerequisites
 
----
+- **Python 3.10+**
+- **Node.js 18+**
+- **Ollama** (for local LLM)
 
-### 📋 Prerequisites — Install These First
+### 1. Clone the Repository
 
-You need **3 things** installed on your PC before running this project:
-
-#### 1. Python 3.10 or higher
-
-| OS | How to Install |
-|---|---|
-| **Windows** | Download from [python.org/downloads](https://www.python.org/downloads/) → Run installer → ⚠️ **CHECK "Add Python to PATH"** at the bottom of the installer! |
-| **Mac** | `brew install python3` (install [Homebrew](https://brew.sh) first if needed) |
-| **Linux (Ubuntu/Debian)** | `sudo apt update && sudo apt install python3 python3-venv python3-pip` |
-
-**Verify it works:** Open a terminal and run:
 ```bash
-python --version
-# Should show: Python 3.10.x or higher
+git clone https://github.com/Vedha-11/AI-Professor-Agent.git
+cd AI-Professor-Agent
 ```
 
-> ⚠️ On Mac/Linux, use `python3` instead of `python` if `python` doesn't work.
+### 2. Install Ollama
 
-#### 2. Git (to clone the project)
+Download from [ollama.ai](https://ollama.ai) and install, then pull a model:
 
-| OS | How to Install |
-|---|---|
-| **Windows** | Download from [git-scm.com](https://git-scm.com/downloads) → Run installer with defaults |
-| **Mac** | `xcode-select --install` (or `brew install git`) |
-| **Linux** | `sudo apt install git` |
-
-#### 3. Ollama (Local AI Engine)
-
-| OS | How to Install |
-|---|---|
-| **Windows** | Download from [ollama.com/download](https://ollama.com/download) → Run installer |
-| **Mac** | Download from [ollama.com/download](https://ollama.com/download) → Drag to Applications |
-| **Linux** | `curl -fsSL https://ollama.com/install.sh | sh` |
-
-**After installing Ollama**, download the AI model (~2.2 GB):
 ```bash
 ollama pull phi3
+# or
+ollama pull mistral
 ```
 
-> 💡 This is a one-time download. The model stays on your PC forever.
-
----
-
-### 🔧 Step-by-Step Installation
-
-#### Step 1: Get the Project
+### 3. Setup Backend
 
 ```bash
-# Clone the repository
-git clone <your-repo-url>
-cd LLM_Project
-```
-
-Or if you already have the folder, just navigate to it:
-```bash
-cd path/to/LLM_Project
-```
-
-#### Step 2: Create a Virtual Environment
-
-```bash
-# Windows
+# Create virtual environment
 python -m venv venv
-venv\Scripts\activate
 
-# Mac / Linux
-python3 -m venv venv
+# Activate (Windows)
+.\venv\Scripts\activate
+
+# Activate (Linux/Mac)
 source venv/bin/activate
-```
 
-> You should see `(venv)` appear at the beginning of your terminal prompt.
-
-#### Step 3: Install Dependencies
-
-```bash
+# Install dependencies
 pip install -r requirements.txt
 ```
 
-> ⏱️ This will take 2-5 minutes (downloads ~1 GB of ML libraries on first run).
-
-#### Step 4: Download the AI Model (if not done already)
+### 4. Setup Frontend
 
 ```bash
-ollama pull phi3
+cd frontend-react
+npm install
 ```
 
-#### Step 5: Run!
+### 5. Run the Application
 
-**Option A: One-Click Launcher (Recommended)**
-
-| OS | Command |
-|---|---|
-| **Windows** | Double-click `start.bat` or run `.\start.bat` in terminal |
-| **Mac/Linux** | `chmod +x start.sh && ./start.sh` |
-
-The launcher automatically:
-- ✅ Checks all prerequisites
-- ✅ Activates virtual environment
-- ✅ Installs any missing dependencies
-- ✅ Starts the backend server
-- ✅ Starts the frontend UI
-- ✅ Opens everything for you
-
-**Option B: Manual Start (Two Terminals)**
-
-**Terminal 1 — Backend:**
+**Terminal 1 - Backend:**
 ```bash
-# Activate venv first
-# Windows: venv\Scripts\activate
-# Mac/Linux: source venv/bin/activate
-
-python -m uvicorn backend.main:app --reload --port 8000
+# From project root, with venv activated
+uvicorn backend.main:app --reload --port 8000
 ```
 
-**Terminal 2 — Frontend:**
+**Terminal 2 - Frontend:**
 ```bash
-# Activate venv first (same as above)
-
-streamlit run frontend/app.py
+cd frontend-react
+npm run dev
 ```
 
-#### Step 6: Open in Browser
+### 6. Open the App
 
-| Service | URL |
-|---|---|
-| **Frontend (Chat UI)** | [http://localhost:8501](http://localhost:8501) |
-| **Backend API Docs** | [http://localhost:8000/docs](http://localhost:8000/docs) |
-| **Health Check** | [http://localhost:8000/health](http://localhost:8000/health) |
+- **Frontend**: http://localhost:5173
+- **Backend API Docs**: http://localhost:8000/docs
 
 ---
 
-### ✅ Quick Verification Checklist
+## 👤 Demo Accounts
 
-After starting, verify everything works:
+Create your own account or use:
 
-| Check | What to Look For |
-|---|---|
-| Open http://localhost:8501 | You see the AI Professor chat UI |
-| Sidebar shows **✅ Backend: Connected** | Backend is running correctly |
-| Sidebar shows **✅ Ollama: Running** | LLM engine is ready |
+| Role | Username | Password |
+|------|----------|----------|
+| Student | `demo` | `demo123` |
+| Student | `student` | `student123` |
+| Professor | `prof` | `prof123` |
 
 ---
 
 ## 📖 Usage Guide
 
-### Step 1: Create a Course
+### As a Professor
 
-```bash
-# First, signup/login to get a token
-curl -X POST "http://localhost:8000/auth/signup" \
-  -d "username=professor&password=securepass123" \
-  -H "Content-Type: application/x-www-form-urlencoded"
+1. **Login** with professor role
+2. **Create a Course** from the Courses page
+3. **Upload Materials** (PDFs, notes) to your course
+4. **Ingest Materials** to generate embeddings
+5. **View Submissions** and student progress
+6. **Generate Reports** for student evaluations
 
-curl -X POST "http://localhost:8000/auth/login" \
-  -d "username=professor&password=securepass123" \
-  -H "Content-Type: application/x-www-form-urlencoded"
-# Save the returned access_token
+### As a Student
 
-# Create a course
-curl -X POST "http://localhost:8000/courses/" \
-  -H "Authorization: Bearer YOUR_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"name": "Machine Learning 101", "description": "Introduction to ML concepts"}'
-```
-
-> 💡 **Tip:** You can also use the interactive API docs at http://localhost:8000/docs to do all of this through a web UI instead of curl!
-
-### Step 2: Upload Course Materials
-
-```bash
-curl -X POST "http://localhost:8000/materials/upload/1" \
-  -H "Authorization: Bearer YOUR_TOKEN" \
-  -F "file=@lecture_notes.pdf"
-```
-
-Supported file types: **PDF**, **TXT**, **MD** (Markdown)
-
-### Step 3: Process Materials (Create Embeddings)
-
-```bash
-# Process all materials in a course
-curl -X POST "http://localhost:8000/ingest/course/1" \
-  -H "Authorization: Bearer YOUR_TOKEN"
-```
-
-> This extracts text, chunks it, and creates vector embeddings. Takes 10-60 seconds depending on document size.
-
-### Step 4: Ask Questions!
-
-**Via the Chat UI (Recommended):**
-1. Open http://localhost:8501
-2. Select your course from the sidebar
-3. Type your question in the chat input
-4. Receive an answer with source citations!
-
-**Via API:**
-```bash
-curl -X POST "http://localhost:8000/qa/ask-simple" \
-  -H "Content-Type: application/json" \
-  -d '{"course_id": 1, "question": "What is gradient descent?"}'
-```
+1. **Login** or signup with student role
+2. **Browse Courses** and view available materials
+3. **Chat with AI** to ask questions about course content
+4. **Take Assignments** and get instant feedback
+5. **Track Progress** and view your scores
+6. **Check Leaderboard** to see your ranking
 
 ---
 
-## 🔌 API Reference
+## 🔌 API Endpoints
 
 ### Authentication
-
-| Endpoint | Method | Description | Auth Required |
-|----------|--------|-------------|---------------|
-| `/auth/signup` | POST | Register new user | No |
-| `/auth/login` | POST | Login, returns JWT token | No |
-| `/auth/me` | GET | Get current user info | Yes |
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/auth/signup` | Create new account |
+| POST | `/auth/login` | Login and get JWT |
+| GET | `/auth/me` | Get current user |
 
 ### Courses
-
-| Endpoint | Method | Description | Auth Required |
-|----------|--------|-------------|---------------|
-| `/courses/` | GET | List all courses | No |
-| `/courses/` | POST | Create new course | Yes |
-| `/courses/{id}` | GET | Get course details | No |
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/courses/` | List all courses |
+| POST | `/courses/` | Create course |
+| GET | `/courses/{id}` | Get course details |
 
 ### Materials
-
-| Endpoint | Method | Description | Auth Required |
-|----------|--------|-------------|---------------|
-| `/materials/upload/{course_id}` | POST | Upload material (PDF) | Yes |
-| `/materials/course/{course_id}` | GET | List course materials | No |
-
-### Ingestion
-
-| Endpoint | Method | Description | Auth Required |
-|----------|--------|-------------|---------------|
-| `/ingest/material/{id}` | POST | Process single material | Yes |
-| `/ingest/course/{id}` | POST | Process all course materials | Yes |
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/materials/upload/{course_id}` | Upload file |
+| GET | `/materials/course/{course_id}` | List materials |
+| POST | `/ingest/{material_id}` | Process & embed |
 
 ### Q&A
-
-| Endpoint | Method | Description | Auth Required |
-|----------|--------|-------------|---------------|
-| `/qa/ask` | POST | Ask question (authenticated) | Yes |
-| `/qa/ask-simple` | POST | Ask question (no auth) | No |
-| `/qa/status` | GET | Check Ollama LLM status | No |
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/qa/ask` | Ask AI (authenticated) |
+| POST | `/qa/ask-simple` | Ask AI (no auth) |
+| GET | `/qa/status` | Check Ollama status |
 
 ### Submissions
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/submissions/` | Create submission |
+| POST | `/submissions/grade` | Auto-grade answer |
+| POST | `/submissions/upload-pdf/{course_id}` | Submit PDF |
+| GET | `/submissions/leaderboard/{course_id}` | Get rankings |
+| GET | `/submissions/assignments/{course_id}` | Get questions |
 
-| Endpoint | Method | Description | Auth Required |
-|----------|--------|-------------|---------------|
-| `/submissions/` | POST | Submit work | Yes |
-| `/submissions/my` | GET | Get my submissions | Yes |
-| `/submissions/leaderboard/{course_id}` | GET | Course leaderboard | No |
-
-### System
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/health` | GET | Backend health check |
-| `/docs` | GET | Swagger API documentation |
-
----
-
-## 🧠 How RAG Works
-
-The system uses **Retrieval-Augmented Generation (RAG)** to provide accurate, course-specific answers:
-
-```
-┌──────────────────────────────────────────────────────────────────┐
-│ 1. DOCUMENT INGESTION                                            │
-│                                                                  │
-│    PDF Upload → Extract Text → Chunk Text → Generate Embeddings │
-│                                      │                           │
-│                                      ▼                           │
-│                              Store in ChromaDB                   │
-└──────────────────────────────────────────────────────────────────┘
-
-┌──────────────────────────────────────────────────────────────────┐
-│ 2. QUESTION ANSWERING                                            │
-│                                                                  │
-│    User Question → Embed Query → Semantic Search → Get Chunks   │
-│                                                          │       │
-│                                                          ▼       │
-│    Generate Answer ← LLM (Ollama) ← Build Prompt + Context      │
-└──────────────────────────────────────────────────────────────────┘
-```
-
-1. **Ingestion**: PDFs are chunked into ~500 character segments, converted to vectors using `all-MiniLM-L6-v2`, and stored in ChromaDB
-2. **Query**: User questions are embedded and matched against stored chunks using cosine similarity
-3. **Generation**: The top 3 most relevant chunks are passed to Ollama with a professor-persona prompt
-4. **Response**: The LLM generates an educational answer citing the source materials
+### Students
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/students/dashboard` | Student dashboard data |
+| GET | `/students/progress/{course_id}` | Get progress |
+| GET | `/students/recommendations/{course_id}` | Get suggestions |
+| GET | `/students/evaluate/{course_id}` | Get evaluation |
+| GET | `/students/report/{course_id}/{user_id}` | Generate report (professor) |
 
 ---
 
-## ⚙️ Configuration
+## 🎨 Screenshots
 
-### Change the LLM Model
+### Login Page
+Modern, role-based authentication with student/professor selection.
 
-Edit `backend/services/llm.py`:
-```python
-DEFAULT_MODEL = "phi3"  # Change to "mistral", "llama3", etc.
-```
+### Student Dashboard
+View progress, recent activity, and quick access to all features.
 
-Available models (install via `ollama pull <model>`):
-| Model | Size | Best For |
-|---|---|---|
-| `phi3` (default) | ~2.2 GB | Fast responses, low-end hardware |
-| `mistral` | ~4 GB | Good balance of speed & quality |
-| `llama3` | ~4.7 GB | Highest quality, needs decent hardware |
-| `codellama` | ~3.8 GB | Programming/code-related courses |
+### AI Chat Interface
+Ask questions and get context-aware answers with source citations.
 
-### Adjust Chunk Size
-
-Edit `backend/services/document.py` to change how documents are split:
-```python
-CHUNK_SIZE = 500      # Characters per chunk
-CHUNK_OVERLAP = 50    # Overlap between chunks
-```
-
-### Number of Retrieved Chunks
-
-Edit `backend/services/embedding.py`:
-```python
-n_results = 3  # Number of chunks to retrieve per question
-```
+### Professor Evaluations
+Generate comprehensive student reports with AI-powered insights.
 
 ---
 
-## 🐛 Troubleshooting
+## 🤝 Contributing
 
-### ❌ `python` is not recognized
-
-- **Windows**: Reinstall Python and **check "Add Python to PATH"**
-- **Mac/Linux**: Use `python3` instead of `python`
-
-### ❌ Backend won't start
-
-```bash
-# Check if port 8000 is already in use
-# Windows:
-netstat -an | findstr 8000
-# Mac/Linux:
-lsof -i :8000
-
-# Use a different port if needed:
-python -m uvicorn backend.main:app --port 8001
-```
-
-### ❌ Ollama not responding
-
-```bash
-# Check if Ollama is running
-ollama list
-
-# If not running, start it (Windows: Ollama starts automatically as a service)
-# Mac/Linux:
-ollama serve
-
-# If model is missing, pull it
-ollama pull phi3
-```
-
-### ❌ `pip install` fails
-
-```bash
-# Upgrade pip first
-python -m pip install --upgrade pip
-
-# Try again
-pip install -r requirements.txt
-
-# On Linux, you may need:
-sudo apt install python3-dev build-essential
-```
-
-### ❌ ChromaDB errors
-
-```bash
-# Delete and recreate the vector store
-# Windows:
-rmdir /s /q data\chroma
-# Mac/Linux:
-rm -rf data/chroma
-
-# Then re-ingest your materials via the API
-```
-
-### 🐌 Slow responses
-
-- Use a smaller model: change to `phi3` in `backend/services/llm.py`
-- Close other heavy applications (games, video editors, etc.)
-- Reduce `n_results` to `2` in `backend/services/embedding.py`
-- Minimum recommended: **8 GB RAM**, **4-core CPU**
-
-### ❌ "No course materials found"
-
-You need to complete all 3 steps in order:
-1. **Create a course** → via API or Swagger docs
-2. **Upload materials** → `.pdf`, `.txt`, or `.md` files
-3. **Ingest the materials** → this creates the searchable embeddings
-
----
-
-## 💻 System Requirements
-
-| Component | Minimum | Recommended |
-|---|---|---|
-| **OS** | Windows 10 / macOS 12 / Ubuntu 20.04 | Latest version |
-| **RAM** | 8 GB | 16 GB |
-| **CPU** | 4 cores | 8 cores |
-| **Disk Space** | 5 GB free | 10 GB free |
-| **GPU** | Not required | NVIDIA GPU speeds up Ollama |
-| **Python** | 3.10 | 3.11+ |
-
----
-
-## 🛣️ Roadmap
-
-- [ ] Support more document formats (Word, Markdown, HTML)
-- [ ] Add conversation memory for follow-up questions
-- [ ] Implement streaming responses
-- [ ] Add admin dashboard for course management
-- [ ] Support for image-based questions
-- [ ] Integration with learning management systems (LMS)
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit changes (`git commit -m 'Add amazing feature'`)
+4. Push to branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
 ---
 
 ## 📄 License
 
-This project is provided as-is for educational purposes.
+This project is open source and available under the [MIT License](LICENSE).
 
 ---
 
 ## 🙏 Acknowledgments
 
-- [Ollama](https://ollama.ai/) for local LLM inference
-- [ChromaDB](https://www.trychroma.com/) for vector storage
-- [FastAPI](https://fastapi.tiangolo.com/) for the backend framework
-- [Streamlit](https://streamlit.io/) for the frontend UI
-- [sentence-transformers](https://www.sbert.net/) for embeddings
+- [Ollama](https://ollama.ai) - Local LLM inference
+- [ChromaDB](https://www.trychroma.com/) - Vector database
+- [FastAPI](https://fastapi.tiangolo.com/) - Modern Python web framework
+- [React](https://react.dev/) - UI library
+- [Tailwind CSS](https://tailwindcss.com/) - Styling
+- [Lucide Icons](https://lucide.dev/) - Beautiful icons
 
 ---
 
-**Built with ❤️ for students and educators everywhere**
+**Made with ❤️ for education**
